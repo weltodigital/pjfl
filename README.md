@@ -51,18 +51,67 @@ Two transparent variants were derived from it and live in `src/assets/`:
 supplies new artwork, regenerate both variants rather than dropping a single file in — the
 blue background needs keying out either way.
 
+## Contact form
+
+Enquiries POST to `api/contact.ts`, a Vercel serverless function that emails them to
+**info@pjfl.co.uk** via [Resend](https://resend.com), with the visitor's address set as
+`Reply-To` so hitting Reply goes straight back to them.
+
+### One-time setup
+
+1. **Resend account** — sign up at resend.com (free tier covers 3,000 emails/month).
+2. **Verify pjfl.co.uk** — Domains > Add Domain, then add the DNS records Resend gives you
+   (an SPF `TXT` and a DKIM record) wherever pjfl.co.uk's DNS is managed. Verification is
+   usually minutes but can take up to 24 hours. This step is what stops enquiries landing in
+   spam — don't skip it.
+3. **Create an API key** — Resend > API Keys. Copy it; you only see it once.
+4. **Add environment variables in Vercel** — Settings > Environment Variables, for both
+   Production and Preview:
+   - `RESEND_API_KEY` — the key from step 3
+   - `CONTACT_FROM` — `PJFL Website <website@pjfl.co.uk>`
+5. **Redeploy** so the new variables are picked up, then send yourself a test enquiry.
+
+Until the domain is verified you can set `CONTACT_FROM` to `onboarding@resend.dev` to test
+the whole flow. Resend will only deliver to your own signup address in that mode.
+
+### Local development
+
+`npm run dev` serves the frontend only — `/api/contact` doesn't exist, so the form will
+report an error. To run the function locally:
+
+```bash
+npm i -g vercel
+cp .env.example .env.local   # add your real key
+vercel dev
+```
+
+### Notes
+
+- A hidden honeypot field silently discards bot submissions.
+- The function validates and length-caps every field server-side, so the API can't be abused
+  by posting to it directly.
+- There's no rate limiting. If the form ever attracts abuse, add Vercel's firewall rules or
+  a KV-backed counter.
+- Enquiries contain personal data. Resend is the processor — worth a line in the client's
+  privacy policy, and the retention settings are in the Resend dashboard.
+
 ## Things to swap before go-live
 
-- **Contact form** — `src/pages/Contact.tsx` currently opens the visitor's email client with
-  the enquiry pre-filled, since there's no server. To capture submissions properly, replace the
-  body of `handleSubmit` with a `fetch()` to Formspree / Netlify Forms / your own endpoint.
+- **Resend setup** — the contact form needs the steps under "Contact form" above completed
+  before it can deliver anything.
 - **"20+ years of experience"** — copy claim on the homepage; confirm before publishing.
+- **MTD wording** — confirm the client handles MTD for Income Tax Self Assessment as well as
+  VAT; the services copy currently implies both.
 
 All contact details (phone, email, address, map link) live in `src/lib/site.ts` — change them
 once there and they update everywhere.
 
 ## Deploying
 
-Any static host works. `public/_redirects` is included so Netlify serves the SPA routes
-correctly; on Vercel add a rewrite of `/(.*)` → `/index.html`, on Apache/Nginx point all
-unmatched routes at `index.html`.
+Built for **Vercel**: import the repo and it picks up the Vite build automatically. `vercel.json`
+rewrites unmatched routes to `index.html` for client-side routing, while leaving `/api/*` alone
+so the contact function still resolves. Remember the environment variables from the contact form
+setup above.
+
+`public/_redirects` is also present, so the site still works on Netlify — but the contact form
+would need porting, since `api/contact.ts` is a Vercel function.

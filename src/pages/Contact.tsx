@@ -23,35 +23,46 @@ const serviceOptions = [
   "Something else",
 ];
 
+type Status = "idle" | "sending" | "sent" | "error";
+
 const Contact = () => {
-  const [sent, setSent] = useState(false);
+  const [status, setStatus] = useState<Status>("idle");
+  const [error, setError] = useState("");
 
-  /**
-   * With no server behind the site, the form hands the enquiry to the
-   * visitor's email client pre-addressed to PJFL. To post it somewhere
-   * instead (Formspree, Netlify Forms, an API route), replace the body of
-   * this handler with a fetch() to that endpoint.
-   */
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  /** Posts the enquiry to the serverless function, which emails PJFL. */
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const get = (key: string) => String(data.get(key) ?? "").trim();
+    const form = event.currentTarget; // capture before awaiting
+    const payload = Object.fromEntries(new FormData(form));
 
-    const body = [
-      `Name: ${get("name")}`,
-      `Email: ${get("email")}`,
-      `Phone: ${get("phone") || "Not provided"}`,
-      `Service of interest: ${get("service") || "Not specified"}`,
-      "",
-      "Message:",
-      get("message"),
-    ].join("\n");
+    setStatus("sending");
+    setError("");
 
-    const subject = `Website enquiry — ${get("service") || "General"}`;
-    window.location.href = `${site.emailHref}?subject=${encodeURIComponent(
-      subject
-    )}&body=${encodeURIComponent(body)}`;
-    setSent(true);
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(
+          result.error || "We couldn't send your message. Please try again."
+        );
+      }
+
+      form.reset();
+      setStatus("sent");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "We couldn't send your message. Please try again."
+      );
+      setStatus("error");
+    }
   };
 
   return (
@@ -126,7 +137,7 @@ const Contact = () => {
                     steps and a clear price.
                   </p>
 
-                  <form onSubmit={handleSubmit} className="space-y-5">
+                  <form onSubmit={handleSubmit} className="relative space-y-5">
                     <div className="grid gap-5 sm:grid-cols-2">
                       <div>
                         <Label htmlFor="name">Full name *</Label>
@@ -179,14 +190,42 @@ const Contact = () => {
                       />
                     </div>
 
-                    <Button type="submit" size="lg" variant="destructive" className="w-full sm:w-auto">
-                      Send Enquiry
+                    {/* Honeypot: hidden from people, catnip for bots. */}
+                    <div className="absolute left-[-9999px]" aria-hidden="true">
+                      <label htmlFor="company">Company (leave blank)</label>
+                      <input id="company" name="company" tabIndex={-1} autoComplete="off" />
+                    </div>
+
+                    <Button
+                      type="submit"
+                      size="lg"
+                      variant="destructive"
+                      className="w-full sm:w-auto"
+                      disabled={status === "sending"}
+                    >
+                      {status === "sending" ? "Sending…" : "Send Enquiry"}
                     </Button>
 
-                    {sent && (
-                      <p className="rounded-md bg-[#345e7d]/10 p-3 text-sm text-[#345e7d]">
-                        Your email client should have opened with your enquiry ready to send. If
-                        it didn't, email us directly at{" "}
+                    <p aria-live="polite" className="sr-only">
+                      {status === "sending" ? "Sending your enquiry" : ""}
+                    </p>
+
+                    {status === "sent" && (
+                      <p
+                        role="status"
+                        className="rounded-md border border-[#345e7d]/20 bg-[#345e7d]/10 p-4 text-sm text-[#345e7d]"
+                      >
+                        <span className="font-semibold">Thank you — your enquiry is on its way.</span>{" "}
+                        We'll be in touch within one working day.
+                      </p>
+                    )}
+
+                    {status === "error" && (
+                      <p
+                        role="alert"
+                        className="rounded-md border border-[#bc1823]/25 bg-[#bc1823]/5 p-4 text-sm text-[#bc1823]"
+                      >
+                        {error} You can also email us directly at{" "}
                         <a href={site.emailHref} className="font-semibold underline">
                           {site.email}
                         </a>
