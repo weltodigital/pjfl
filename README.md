@@ -57,6 +57,11 @@ Enquiries POST to `api/contact.ts`, a Vercel serverless function that emails the
 **info@pjfl.co.uk** via [Resend](https://resend.com), with the visitor's address set as
 `Reply-To` so hitting Reply goes straight back to them.
 
+> **The form is currently hidden.** `CONTACT_FORM_ENABLED` at the top of
+> `src/pages/Contact.tsx` is `false`, so the page offers call and email buttons instead.
+> Flip it to `true` once the Resend setup below is done — that's the only change needed;
+> the form and the function are both already in place and tested.
+
 ### One-time setup
 
 1. **Resend account** — sign up at resend.com (free tier covers 3,000 emails/month).
@@ -69,7 +74,9 @@ Enquiries POST to `api/contact.ts`, a Vercel serverless function that emails the
    Production and Preview:
    - `RESEND_API_KEY` — the key from step 3
    - `CONTACT_FROM` — `PJFL Website <website@pjfl.co.uk>`
-5. **Redeploy** so the new variables are picked up, then send yourself a test enquiry.
+5. **Redeploy** so the new variables are picked up.
+6. **Set `CONTACT_FORM_ENABLED` to `true`** in `src/pages/Contact.tsx`, push, then send
+   yourself a test enquiry.
 
 Until the domain is verified you can set `CONTACT_FROM` to `onboarding@resend.dev` to test
 the whole flow. Resend will only deliver to your own signup address in that mode.

@@ -10,6 +10,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { site } from "@/lib/site";
 
+/**
+ * Set to true once Resend is configured (see "Contact form" in the README:
+ * verify pjfl.co.uk, then add RESEND_API_KEY and CONTACT_FROM in Vercel).
+ * While false the page shows call/email options instead of the form, so
+ * visitors are never handed a form that can't deliver.
+ */
+const CONTACT_FORM_ENABLED: boolean = false;
+
 const serviceOptions = [
   "Tax Planning & Preparation",
   "Making Tax Digital (MTD)",
@@ -126,9 +134,46 @@ const Contact = () => {
             </Card>
           </div>
 
-          {/* Form + hours */}
+          {/* Enquiry panel + map */}
           <div className="mt-14 grid gap-10 lg:grid-cols-5">
             <div className="lg:col-span-3">
+              {!CONTACT_FORM_ENABLED ? (
+                <Card className="h-full">
+                  <CardContent className="flex h-full flex-col justify-center p-8 sm:p-10">
+                    <h2 className="mb-3 text-2xl font-bold text-[#345e7d]">
+                      Speak To Us Directly
+                    </h2>
+                    <p className="mb-8 leading-relaxed text-gray-600">
+                      We'd rather talk than trade forms. Give us a call or drop us an email and
+                      you'll get a qualified accountant, not a queue. Tell us a little about your
+                      situation and we'll come back to you with next steps and a clear price.
+                    </p>
+
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                      <Button asChild size="lg" variant="destructive">
+                        <a href={site.phoneHref}>
+                          <Phone className="h-5 w-5" />
+                          Call {site.phone}
+                        </a>
+                      </Button>
+                      <Button asChild size="lg" variant="outline">
+                        <a href={site.emailHref}>
+                          <Mail className="h-5 w-5" />
+                          Email Us
+                        </a>
+                      </Button>
+                    </div>
+
+                    <p className="mt-8 border-t border-gray-200 pt-6 text-sm text-gray-500">
+                      Prefer to write? Email{" "}
+                      <a href={site.emailHref} className="font-semibold text-[#345e7d] underline">
+                        {site.email}
+                      </a>{" "}
+                      with a few details and we'll reply within one working day.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
               <Card>
                 <CardContent className="p-8">
                   <h2 className="mb-2 text-2xl font-bold text-[#345e7d]">Send Us A Message</h2>
@@ -235,6 +280,7 @@ const Contact = () => {
                   </form>
                 </CardContent>
               </Card>
+              )}
             </div>
 
             <div className="lg:col-span-2">
